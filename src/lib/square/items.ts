@@ -24,6 +24,29 @@ export interface ArtistProduct {
 }
 
 /**
+ * Square category ids whose items are hidden from the ENTIRE storefront (grid,
+ * category pages, PDP, related, home rail). Comma-separated in
+ * HIDDEN_CATEGORY_IDS; empty/absent = nothing hidden. Hiding/unhiding an item
+ * is a Square-dashboard action (assign/remove the category) — no redeploy.
+ */
+export function getHiddenCategoryIds(): Set<string> {
+  return new Set(
+    (process.env.HIDDEN_CATEGORY_IDS ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  )
+}
+
+/** True if any of the item's categories is a hidden category. */
+export function isHiddenByCategory(
+  categoryIds: string[],
+  hidden: Set<string> = getHiddenCategoryIds()
+): boolean {
+  return hidden.size > 0 && categoryIds.some((id) => hidden.has(id))
+}
+
+/**
  * Square's `batchGet` caps at ~1000 object ids per call; ids beyond the cap are
  * silently dropped. This resolves IMAGE urls for any number of image ids by
  * chunking into batches of <= 900 (safely under the cap), awaiting each, and
@@ -144,9 +167,11 @@ export const getItemsByCategoryId = cache(
       })
     }
 
-    // Sort alphabetically by name for stable display order.
-    out.sort((a, b) => a.name.localeCompare(b.name))
-    return out
+    // Drop items in a hidden category, then sort alphabetically for stable order.
+    const hidden = getHiddenCategoryIds()
+    const visible = out.filter((p) => !isHiddenByCategory(p.categoryIds, hidden))
+    visible.sort((a, b) => a.name.localeCompare(b.name))
+    return visible
   },
   ['square-items-by-category'],
   { revalidate: 60 }
@@ -223,7 +248,8 @@ export const getShopProducts = cache(
       })
     }
 
-    const out = Array.from(byId.values())
+    const hidden = getHiddenCategoryIds()
+    const out = Array.from(byId.values()).filter((p) => !isHiddenByCategory(p.categoryIds, hidden))
     out.sort((a, b) => a.name.localeCompare(b.name))
     return out
   },

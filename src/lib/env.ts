@@ -35,6 +35,11 @@ const envSchema = z.object({
   SQUARE_ACCESS_TOKEN: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   SQUARE_LOCATION_ID: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   SQUARE_WEBHOOK_SIGNATURE_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  // Comma-separated Square category ids whose items are hidden from the ENTIRE
+  // storefront. Empty/absent = nothing hidden. Assign items to one of these
+  // categories in Square to pull them off the site. Runtime-only; read via
+  // process.env in src/lib/square/items.ts (this entry is validation/docs).
+  HIDDEN_CATEGORY_IDS: z.preprocess(emptyToUndefined, z.string().optional()),
 
   // Shippo dynamic shipping (live rate quotes at checkout). Runtime-only secret;
   // OPTIONAL here so the build never depends on it (cf. the Square keys). Runtime

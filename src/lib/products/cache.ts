@@ -3,6 +3,7 @@ import { db } from '@/lib/db/client'
 import { productCache } from '@/lib/db/schema'
 import { artImageUrl } from '@/lib/images/art-url'
 import { getSquareClient } from '@/lib/square/client'
+import { isHiddenByCategory } from '@/lib/square/items'
 import type {
   CachedItemOption,
   CachedItemOptionValue,
@@ -192,11 +193,13 @@ async function writeCache(product: CachedProduct): Promise<void> {
 export async function getProductById(itemId: string): Promise<CachedProduct | null> {
   if (!itemId) return null
   const fresh = await readFresh(itemId)
-  if (fresh) return fresh.data
+  if (fresh) return isHiddenByCategory(fresh.data.categoryIds) ? null : fresh.data
   const refreshed = await refreshFromSquare(itemId)
   if (!refreshed) return null
   await writeCache(refreshed)
-  return refreshed
+  // Hidden = not on the storefront AND not purchasable: null here 404s the PDP
+  // and blocks cart-hydrate / checkout-validate (both read through this fn).
+  return isHiddenByCategory(refreshed.categoryIds) ? null : refreshed
 }
 
 /**

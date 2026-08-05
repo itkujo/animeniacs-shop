@@ -2,7 +2,7 @@ import 'server-only'
 import { db } from '@/lib/db/client'
 import { productCache } from '@/lib/db/schema'
 import type { CachedProduct } from '@/lib/square/types'
-import { type ArtistProduct, getShopProducts } from '@/lib/square/items'
+import { type ArtistProduct, getHiddenCategoryIds, getShopProducts, isHiddenByCategory } from '@/lib/square/items'
 import { desc } from 'drizzle-orm'
 
 /**
@@ -44,24 +44,27 @@ async function fromCache(limit: number): Promise<ArtistProduct[]> {
       .orderBy(desc(productCache.updatedAt))
       .limit(limit)
 
-    return rows.map((row) => {
-      const data = row.data as CachedProduct
-      let priceCents: number | null = null
-      for (const v of data.variations ?? []) {
-        const amount = v.price?.amount
-        if (typeof amount === 'number' && (priceCents === null || amount < priceCents)) {
-          priceCents = amount
+    const hidden = getHiddenCategoryIds()
+    return rows
+      .map((row) => {
+        const data = row.data as CachedProduct
+        let priceCents: number | null = null
+        for (const v of data.variations ?? []) {
+          const amount = v.price?.amount
+          if (typeof amount === 'number' && (priceCents === null || amount < priceCents)) {
+            priceCents = amount
+          }
         }
-      }
-      return {
-        id: data.id,
-        name: data.name,
-        imageUrl: data.images?.[0] ?? null,
-        priceCents,
-        categoryIds: data.categoryIds ?? [],
-        updatedAt: data.updatedAt ?? null
-      } satisfies ArtistProduct
-    })
+        return {
+          id: data.id,
+          name: data.name,
+          imageUrl: data.images?.[0] ?? null,
+          priceCents,
+          categoryIds: data.categoryIds ?? [],
+          updatedAt: data.updatedAt ?? null
+        } satisfies ArtistProduct
+      })
+      .filter((p) => !isHiddenByCategory(p.categoryIds, hidden))
   } catch {
     return []
   }
