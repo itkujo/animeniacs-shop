@@ -74,6 +74,15 @@ export function MobileNav({ items }: { items: NavItem[] }): JSX.Element {
                   wrapperClassName="relative block"
                   className="w-full border-b border-line py-3 text-left font-display text-3xl text-bone transition-colors hover:text-neon"
                 />
+              ) : item.litBox ? (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className="lit-box-glow border-b border-line py-3 font-display text-3xl uppercase tracking-wide"
+                >
+                  {item.label}
+                </Link>
               ) : (
                 <Link
                   key={item.href}

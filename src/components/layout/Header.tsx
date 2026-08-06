@@ -14,11 +14,14 @@ export interface NavItem {
   label: string
   /** Section not built yet — render a "coming soon" affordance, not a link. */
   comingSoon?: boolean
+  /** Signature LIT Box CTA — renders with the purple→green glow animation. */
+  litBox?: boolean
 }
 
 const NAV: NavItem[] = [
   { href: '/shop' as Route, label: 'Shop' },
   { href: '/artist' as Route, label: 'Artists' },
+  { href: '/shop?q=litbox' as Route, label: 'LIT Box', litBox: true },
   { href: '/custom/acrylic' as Route, label: 'Custom Acrylic', comingSoon: true },
   { href: '/custom/stickers' as Route, label: 'Custom Stickers', comingSoon: true },
   { href: '/account' as Route, label: 'Account' }
@@ -72,6 +75,14 @@ export function Header(): JSX.Element {
                 <li key={item.href} className="hidden md:block">
                   {item.comingSoon ? (
                     <ComingSoonNavItem label={item.label} className="link-neon p-0" />
+                  ) : item.litBox ? (
+                    <Link
+                      href={item.href}
+                      aria-current={active ? 'page' : undefined}
+                      className="lit-box-glow font-display text-lg uppercase tracking-wide"
+                    >
+                      {item.label}
+                    </Link>
                   ) : (
                     <Link
                       href={item.href}

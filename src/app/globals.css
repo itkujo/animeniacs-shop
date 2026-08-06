@@ -123,6 +123,56 @@ body {
     text-shadow: 0 0 12px rgba(139, 61, 255, 0.45);
   }
 
+  /* LIT Box nav CTA — our signature purple→green flow + pulsing glow. Competitors
+     use a rainbow shimmer; this is the on-brand alternative (Street Gallery
+     purple → spray-paint green). The gradient flows through the letters while the
+     glow pulses between purple and green. Honors prefers-reduced-motion. */
+  .lit-box-glow {
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    background-image: linear-gradient(
+      100deg,
+      var(--color-purple) 0%,
+      var(--color-purple-bright) 28%,
+      var(--color-neon) 50%,
+      var(--color-purple-bright) 72%,
+      var(--color-purple) 100%
+    );
+    background-size: 220% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    animation: lit-box-flow 3.4s linear infinite, lit-box-pulse 2.4s ease-in-out infinite;
+  }
+  .lit-box-glow:hover {
+    text-decoration: none;
+  }
+  @keyframes lit-box-flow {
+    from {
+      background-position: 0% center;
+    }
+    to {
+      background-position: 220% center;
+    }
+  }
+  @keyframes lit-box-pulse {
+    0%,
+    100% {
+      filter: drop-shadow(0 0 4px rgba(139, 61, 255, 0.75)) drop-shadow(0 0 12px rgba(139, 61, 255, 0.4));
+    }
+    50% {
+      filter: drop-shadow(0 0 6px rgba(57, 255, 20, 0.8)) drop-shadow(0 0 18px rgba(57, 255, 20, 0.5));
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lit-box-glow {
+      animation: none;
+      background-position: 50% center; /* rests on the green mid-point */
+      filter: drop-shadow(0 0 6px rgba(57, 255, 20, 0.5));
+    }
+  }
+
   /* Primary CTA — neon fill, dark ink text, angular cut corner, hover glow. */
   .btn-neon {
     display: inline-flex;
