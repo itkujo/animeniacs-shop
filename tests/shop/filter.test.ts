@@ -40,6 +40,25 @@ describe('filterAndSortProducts', () => {
     expect(out.map((x) => x.id)).toEqual(['1'])
   })
 
+  it('search matches an item by its category name/ancestry without a name match', () => {
+    // "Spider-Man" leaf whose ancestry text includes its parents (Marvel, Comics).
+    const categorySearch = new Map<string, string>([['SPIDEY', 'spider-man marvel comics']])
+    const products = [
+      p({ id: '1', name: 'Iron Spider', categoryIds: ['SPIDEY'] }),
+      p({ id: '2', name: 'Random Poster', categoryIds: ['OTHER'] })
+    ]
+    // Searching the parent term "marvel" surfaces the item even though its name
+    // doesn't contain it; the unrelated product is excluded.
+    const out = filterAndSortProducts(products, noSummaries, q({ q: 'marvel' }), categorySearch)
+    expect(out.map((x) => x.id)).toEqual(['1'])
+  })
+
+  it('without a category index, search is name-only (no accidental category match)', () => {
+    const products = [p({ id: '1', name: 'Iron Spider', categoryIds: ['SPIDEY'] })]
+    const out = filterAndSortProducts(products, noSummaries, q({ q: 'marvel' }))
+    expect(out).toEqual([])
+  })
+
   it('filters by resolved categoryId (containment)', () => {
     const products = [
       p({ id: '1', categoryIds: ['CAT_A', 'CAT_B'] }),

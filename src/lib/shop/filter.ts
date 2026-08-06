@@ -7,21 +7,34 @@ import type { ArtistProduct } from '@/lib/square/items'
  * Category/artist slug → squareCategoryId resolution happens in the page; this
  * function takes the already-resolved `categoryId`/`artistCategoryId`.
  *
- * Filters (all ANDed): name substring (case-insensitive), category containment,
- * artist containment, price range. Null-price (variable-price) products are
- * excluded ONLY when a price bound is set. Returns a NEW array — never mutates
- * the input.
+ * Filters (all ANDed): search term (case-insensitive — matches the product name
+ * OR any of its categories' names/ancestry via `categorySearch`), category
+ * containment, artist containment, price range. Null-price (variable-price)
+ * products are excluded ONLY when a price bound is set. Returns a NEW array —
+ * never mutates the input.
+ *
+ * `categorySearch` (categoryId → lowercased ancestry text, from
+ * `buildCategorySearchIndex`) is OPTIONAL and server-only: it lets a search for
+ * an IP term ("One Piece", "Marvel") surface items in that category without ever
+ * sending category names to the client. Omit it for name-only search.
  */
 export function filterAndSortProducts(
   products: ArtistProduct[],
   summaries: Map<string, ReviewSummary>,
-  query: ShopQuery
+  query: ShopQuery,
+  categorySearch?: Map<string, string>
 ): ArtistProduct[] {
   const needle = query.q?.toLowerCase() ?? null
   const hasPriceBound = query.minCents !== null || query.maxCents !== null
 
   const filtered = products.filter((product) => {
-    if (needle && !product.name.toLowerCase().includes(needle)) return false
+    if (needle) {
+      const inName = product.name.toLowerCase().includes(needle)
+      const inCategory =
+        categorySearch !== undefined &&
+        product.categoryIds.some((id) => categorySearch.get(id)?.includes(needle))
+      if (!inName && !inCategory) return false
+    }
     if (query.categoryId && !product.categoryIds.includes(query.categoryId)) return false
     if (query.artistCategoryId && !product.categoryIds.includes(query.artistCategoryId)) {
       return false

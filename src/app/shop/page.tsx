@@ -6,6 +6,7 @@ import { getPublicIpNicknames } from '@/lib/db/queries/ip-nicknames'
 import { getReviewSummariesForProducts } from '@/lib/db/queries/reviews'
 import { filterAndSortProducts, paginate } from '@/lib/shop/filter'
 import { type RawSearchParams, parseShopParams } from '@/lib/shop/parse-params'
+import { buildCategorySearchIndex, listCategoriesFromSquare } from '@/lib/square/categories'
 import { getShopProducts } from '@/lib/square/items'
 
 // Reads the live Square catalog + DB at request time and branches on
@@ -52,7 +53,21 @@ export default async function ShopPage({
 
   const summaries = await getReviewSummariesForProducts(products.map((p) => p.id))
 
-  const filtered = filterAndSortProducts(products, summaries, query)
+  // Only when searching: build the server-side category-name index so a query
+  // like "One Piece" matches items in that category (and its parent chain).
+  // Names never reach the client — the index is consumed here and only filtered
+  // products are rendered. Best-effort: if categories can't be fetched, search
+  // silently falls back to name-only.
+  let categorySearch: Map<string, string> | undefined
+  if (query.q) {
+    try {
+      categorySearch = buildCategorySearchIndex(await listCategoriesFromSquare())
+    } catch {
+      categorySearch = undefined
+    }
+  }
+
+  const filtered = filterAndSortProducts(products, summaries, query, categorySearch)
   const { pageItems, page, pageCount, total } = paginate(filtered, query.page, PAGE_SIZE)
 
   // Active params (string form) so Pagination preserves filter/sort state.

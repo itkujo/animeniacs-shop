@@ -99,6 +99,31 @@ export async function getNonArtistCategories(): Promise<SquareCategory[]> {
 }
 
 /**
+ * Server-only search index: categoryId → lowercased text of the category's OWN
+ * name plus every ancestor name up the parentCategoryId chain (e.g. a "Spider-Man"
+ * leaf → "spider-man marvel comics"). Lets the shop search match IP/category terms
+ * ("One Piece", "Marvel") against an item's categories WITHOUT exposing any name
+ * to the client — the index is built and consumed server-side; only the filtered
+ * product list ever reaches the browser (IP-never-public stays intact). Cycle-safe.
+ */
+export function buildCategorySearchIndex(cats: SquareCategory[]): Map<string, string> {
+  const byId = new Map(cats.map((c) => [c.id, c]))
+  const index = new Map<string, string>()
+  for (const c of cats) {
+    const parts: string[] = []
+    const seen = new Set<string>()
+    let cur: SquareCategory | undefined = c
+    while (cur && !seen.has(cur.id)) {
+      seen.add(cur.id)
+      parts.push(cur.name)
+      cur = cur.parentCategoryId ? byId.get(cur.parentCategoryId) : undefined
+    }
+    index.set(c.id, parts.join(' ').toLowerCase())
+  }
+  return index
+}
+
+/**
  * Walks parentCategoryId up the chain, joining names with ` > `.
  * Used to build hierarchical labels for the IP category picker.
  * Detects cycles (returns the partial chain it has so far).
