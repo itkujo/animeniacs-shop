@@ -39,11 +39,8 @@ const fixturePage: Array<Record<string, unknown>> = [
 vi.mock('square', () => {
   class SquareClient {
     catalog = {
-      list: async (_args: unknown) => ({
-        async *[Symbol.asyncIterator]() {
-          for (const o of fixturePage) yield o
-        }
-      })
+      // Single-page result (no cursor) — mirrors catalog.search's shape.
+      search: async (_args: unknown) => ({ objects: fixturePage, cursor: undefined })
     }
     constructor(public readonly config: { token: string; environment: string }) {}
   }

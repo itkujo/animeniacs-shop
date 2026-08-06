@@ -62,7 +62,8 @@ export default async function ShopPage({
   if (query.q) {
     try {
       categorySearch = buildCategorySearchIndex(await listCategoriesFromSquare())
-    } catch {
+    } catch (err) {
+      console.error('[shop] category search index failed; search falls back to name-only:', err)
       categorySearch = undefined
     }
   }

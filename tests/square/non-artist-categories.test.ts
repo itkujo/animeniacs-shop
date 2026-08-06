@@ -52,11 +52,7 @@ let currentPage: Array<Record<string, unknown>> = fixturePage
 vi.mock('square', () => {
   class SquareClient {
     catalog = {
-      list: async (_args: unknown) => ({
-        async *[Symbol.asyncIterator]() {
-          for (const o of currentPage) yield o
-        }
-      })
+      search: async (_args: unknown) => ({ objects: currentPage, cursor: undefined })
     }
     constructor(public readonly config: { token: string; environment: string }) {}
   }

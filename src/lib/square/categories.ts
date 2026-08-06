@@ -30,17 +30,28 @@ export const listCategoriesFromSquare = cache(
   async (): Promise<SquareCategory[]> => {
     const client = getSquareClient()
     const out: SquareCategory[] = []
-    const page = await client.catalog.list({ types: 'CATEGORY' })
-    for await (const obj of page) {
-      // biome-ignore lint/suspicious/noExplicitAny: SDK union is awkward; narrow via `type === 'CATEGORY'`
-      const c: any = obj
-      if (c.type !== 'CATEGORY') continue
-      out.push({
-        id: c.id,
-        name: c.categoryData?.name ?? '(unnamed)',
-        parentCategoryId: c.categoryData?.parentCategory?.id ?? null
+    // Manual cursor pagination via catalog.search — matches getShopProducts /
+    // getItemsByCategoryId. The SDK's `catalog.list()` `for await` auto-iterator
+    // did NOT page in the bundled Next standalone runtime (it yielded nothing,
+    // so this returned an empty list in production even though categories exist).
+    let cursor: string | undefined
+    do {
+      const resp = await client.catalog.search({
+        objectTypes: ['CATEGORY'],
+        ...(cursor ? { cursor } : {})
       })
-    }
+      // biome-ignore lint/suspicious/noExplicitAny: SDK union is awkward; narrow via `type === 'CATEGORY'`
+      const objs: any[] = (resp as any).objects ?? []
+      for (const c of objs) {
+        if (c.type !== 'CATEGORY') continue
+        out.push({
+          id: c.id,
+          name: c.categoryData?.name ?? '(unnamed)',
+          parentCategoryId: c.categoryData?.parentCategory?.id ?? null
+        })
+      }
+      cursor = (resp as any).cursor ?? undefined
+    } while (cursor)
     out.sort((a, b) => a.name.localeCompare(b.name))
     return out
   },
