@@ -68,6 +68,23 @@ export default async function ShopPage({
     }
   }
 
+  // TEMP DIAGNOSTIC — remove after debugging category search. Safe: gated on a
+  // sentinel query, renders no user data, mutates nothing.
+  if (query.q === '__catdbg__') {
+    const idx = categorySearch
+    const dbg = {
+      catIndexSize: idx?.size ?? 'undefined',
+      totalProducts: products.length,
+      productsWithCategoryIds: products.filter((p) => p.categoryIds.length > 0).length,
+      sampleProductCategoryIds: products[0]?.categoryIds ?? null,
+      mercCategoryMatches: idx
+        ? products.filter((p) => p.categoryIds.some((id) => idx.get(id)?.includes('merc'))).length
+        : 'no-index',
+      sampleIndexEntry: idx ? [...idx.entries()][0] : null
+    }
+    return <pre style={{ padding: 24, whiteSpace: 'pre-wrap' }}>{JSON.stringify(dbg, null, 2)}</pre>
+  }
+
   const filtered = filterAndSortProducts(products, summaries, query, categorySearch)
   const { pageItems, page, pageCount, total } = paginate(filtered, query.page, PAGE_SIZE)
 
