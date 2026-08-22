@@ -134,6 +134,13 @@
       "when": 1782427747589,
       "tag": "0018_bumpy_mimic",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787373295288,
+      "tag": "0019_happy_pandemic",
+      "breakpoints": true
     }
   ]
 }

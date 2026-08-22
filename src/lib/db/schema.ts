@@ -266,6 +266,9 @@ export const artists = pgTable(
     commissionRate: numeric('commission_rate', { precision: 5, scale: 4 })
       .notNull()
       .default('0.2000'),
+    // House/non-payable accounts (e.g. "Animeniacs Studios") stay `false`: their
+    // commission is still COMPUTED and shown, but excluded from amounts owed.
+    payable: boolean('payable').notNull().default(true),
     paymentMethod: text('payment_method'),
     paymentEmail: text('payment_email'),
     notes: text('notes'),
@@ -279,6 +282,98 @@ export const artists = pgTable(
 
 export type Artist = typeof artists.$inferSelect
 export type NewArtist = typeof artists.$inferInsert
+
+// ---------------------------------------------------------------------------
+// Artist commissions & payouts (design: 2026-08-06-artist-commissions-payouts).
+// `commission_earnings` is a MATERIALIZED cache recomputed from production Square
+// (both locations, all history) by the sync job — safe to wipe+rebuild per period.
+// `commission_overrides` and `artist_payouts` are DURABLE operator inputs the
+// sync must NEVER overwrite. Money is integer cents. `item_type`: acrylic|prints|
+// other. `location`: online|mobile. A null `artist_id` = unattributed/custom sale.
+// ---------------------------------------------------------------------------
+export const commissionEarnings = pgTable(
+  'commission_earnings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    artistId: uuid('artist_id').references(() => artists.id, { onDelete: 'set null' }),
+    yearMonth: text('year_month').notNull(), // 'YYYY-MM' in America/Chicago
+    itemType: text('item_type').notNull(),
+    location: text('location').notNull(),
+    grossCents: integer('gross_cents').notNull().default(0),
+    discountCents: integer('discount_cents').notNull().default(0),
+    refundCents: integer('refund_cents').notNull().default(0),
+    netCents: integer('net_cents').notNull().default(0),
+    commissionCents: integer('commission_cents').notNull().default(0),
+    orderCount: integer('order_count').notNull().default(0),
+    computedAt: timestamp('computed_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    itemTypeValid: check(
+      'commission_earnings_item_type_valid',
+      sql`${table.itemType} IN ('acrylic', 'prints', 'other')`
+    ),
+    locationValid: check(
+      'commission_earnings_location_valid',
+      sql`${table.location} IN ('online', 'mobile')`
+    ),
+    artistMonthIdx: index('commission_earnings_artist_month_idx').on(table.artistId, table.yearMonth),
+    monthIdx: index('commission_earnings_month_idx').on(table.yearMonth)
+  })
+)
+
+export const commissionOverrides = pgTable(
+  'commission_overrides',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    artistId: uuid('artist_id')
+      .notNull()
+      .references(() => artists.id, { onDelete: 'cascade' }),
+    yearMonth: text('year_month').notNull(),
+    itemType: text('item_type').notNull(),
+    // Replaces the computed commission for this artist/month/type when present.
+    overrideCommissionCents: integer('override_commission_cents').notNull(),
+    note: text('note'),
+    createdBy: text('created_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    itemTypeValid: check(
+      'commission_overrides_item_type_valid',
+      sql`${table.itemType} IN ('acrylic', 'prints', 'other')`
+    ),
+    uniqueCell: unique('commission_overrides_cell_unique').on(
+      table.artistId,
+      table.yearMonth,
+      table.itemType
+    )
+  })
+)
+
+export const artistPayouts = pgTable(
+  'artist_payouts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    artistId: uuid('artist_id')
+      .notNull()
+      .references(() => artists.id, { onDelete: 'cascade' }),
+    amountCents: integer('amount_cents').notNull(), // > 0; advances tracked via balance going negative
+    paidAt: timestamp('paid_at', { withTimezone: true }).notNull().defaultNow(),
+    method: text('method'),
+    note: text('note'),
+    createdBy: text('created_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    artistIdx: index('artist_payouts_artist_idx').on(table.artistId)
+  })
+)
+
+export type CommissionEarning = typeof commissionEarnings.$inferSelect
+export type NewCommissionEarning = typeof commissionEarnings.$inferInsert
+export type CommissionOverride = typeof commissionOverrides.$inferSelect
+export type ArtistPayout = typeof artistPayouts.$inferSelect
+export type NewArtistPayout = typeof artistPayouts.$inferInsert
 
 // ---------------------------------------------------------------------------
 // Phase 15: better-auth (email + password). These four tables are the canonical
