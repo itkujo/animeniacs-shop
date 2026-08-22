@@ -34,6 +34,10 @@ const envSchema = z.object({
   SQUARE_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
   SQUARE_ACCESS_TOKEN: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   SQUARE_LOCATION_ID: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  // In-person / show POS location ("Animeniacs Mobile"). SQUARE_LOCATION_ID is
+  // the online store; this is the second location the commission report sweeps
+  // (both locations, all history). Optional — absent → report covers online only.
+  SQUARE_MOBILE_LOCATION_ID: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   SQUARE_WEBHOOK_SIGNATURE_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   // Comma-separated Square category ids whose items are hidden from the ENTIRE
   // storefront. Empty/absent = nothing hidden. Assign items to one of these
