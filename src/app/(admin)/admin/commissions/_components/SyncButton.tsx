@@ -1,8 +1,7 @@
 'use client'
 
 import { type SyncState, syncCommissionsAction } from '../actions'
-import { useActionState } from 'react'
-import { useFormStatus } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 
 function SubmitButton(): JSX.Element {
   const { pending } = useFormStatus()
@@ -27,7 +26,7 @@ function SubmitButton(): JSX.Element {
 
 /** Runs the commission recompute and shows the result inline. */
 export function SyncButton(): JSX.Element {
-  const [state, formAction] = useActionState<SyncState, FormData>(
+  const [state, formAction] = useFormState<SyncState, FormData>(
     (prev) => syncCommissionsAction(prev),
     {}
   )

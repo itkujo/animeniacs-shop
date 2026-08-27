@@ -1,8 +1,7 @@
 'use client'
 
 import { type PayoutState, recordPayoutAction } from '../actions'
-import { useActionState } from 'react'
-import { useFormStatus } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 
 export interface PayoutFormArtist {
   id: string
@@ -39,7 +38,7 @@ function Submit(): JSX.Element {
 
 /** Record-a-payout form: artist, amount ($), date, method, note. */
 export function PayoutForm({ artists }: { artists: PayoutFormArtist[] }): JSX.Element {
-  const [state, action] = useActionState<PayoutState, FormData>(recordPayoutAction, {})
+  const [state, action] = useFormState<PayoutState, FormData>(recordPayoutAction, {})
   return (
     <form
       action={action}
