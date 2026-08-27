@@ -3,11 +3,11 @@ import type { CommissionEarningView } from '@/lib/db/queries/commissions'
 import { describe, expect, it } from 'vitest'
 
 const rows: CommissionEarningView[] = [
-  { artistName: 'Bxnny.Arts', payable: true, yearMonth: '2026-07', commissionCents: 300 },
-  { artistName: 'Bxnny.Arts', payable: true, yearMonth: '2026-08', commissionCents: 800 },
-  { artistName: 'Merc Da Artist', payable: true, yearMonth: '2026-08', commissionCents: 500 },
-  { artistName: 'Animeniacs Studios', payable: false, yearMonth: '2026-08', commissionCents: 120 },
-  { artistName: 'Unattributed', payable: false, yearMonth: '2026-08', commissionCents: 900 }
+  { artistId: 'a1', artistName: 'Bxnny.Arts', payable: true, yearMonth: '2026-07', commissionCents: 300 },
+  { artistId: 'a1', artistName: 'Bxnny.Arts', payable: true, yearMonth: '2026-08', commissionCents: 800 },
+  { artistId: 'a2', artistName: 'Merc Da Artist', payable: true, yearMonth: '2026-08', commissionCents: 500 },
+  { artistId: 'a3', artistName: 'Animeniacs Studios', payable: false, yearMonth: '2026-08', commissionCents: 120 },
+  { artistId: null, artistName: 'Unattributed', payable: false, yearMonth: '2026-08', commissionCents: 900 }
 ]
 
 describe('buildReport', () => {

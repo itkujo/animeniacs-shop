@@ -8,6 +8,7 @@ import type { CommissionEarningView } from '@/lib/db/queries/commissions'
  */
 
 export interface ArtistReportRow {
+  artistId: string | null
   artistName: string
   payable: boolean
   byMonth: Record<string, number> // yearMonth → commission cents
@@ -28,10 +29,18 @@ export function buildReport(rows: CommissionEarningView[]): CommissionReport {
 
   for (const r of rows) {
     months.add(r.yearMonth)
-    let a = byArtist.get(r.artistName)
+    // Key by artistId so payouts can join; null artist → single "Unattributed" bucket.
+    const key = r.artistId ?? '__unattributed__'
+    let a = byArtist.get(key)
     if (!a) {
-      a = { artistName: r.artistName, payable: r.payable, byMonth: {}, totalCents: 0 }
-      byArtist.set(r.artistName, a)
+      a = {
+        artistId: r.artistId,
+        artistName: r.artistName,
+        payable: r.payable,
+        byMonth: {},
+        totalCents: 0
+      }
+      byArtist.set(key, a)
     }
     a.byMonth[r.yearMonth] = (a.byMonth[r.yearMonth] ?? 0) + r.commissionCents
     a.totalCents += r.commissionCents

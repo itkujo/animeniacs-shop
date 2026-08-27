@@ -2,10 +2,11 @@ import 'server-only'
 import { db } from '@/lib/db/client'
 import {
   type NewCommissionEarning,
+  artistPayouts,
   artists,
   commissionEarnings
 } from '@/lib/db/schema'
-import { desc, eq } from 'drizzle-orm'
+import { asc, desc, eq, sql } from 'drizzle-orm'
 
 /** House accounts: computed-but-not-owed. Seeded with payable=false. */
 const HOUSE_ARTIST_NAMES = new Set(['Animeniacs Studios'])
@@ -81,6 +82,7 @@ export async function replaceAllCommissionEarnings(rows: NewCommissionEarning[])
 }
 
 export interface CommissionEarningView {
+  artistId: string | null
   artistName: string
   payable: boolean
   yearMonth: string
@@ -91,6 +93,7 @@ export interface CommissionEarningView {
 export async function getCommissionEarningRows(): Promise<CommissionEarningView[]> {
   const rows = await db
     .select({
+      artistId: commissionEarnings.artistId,
       artistName: artists.displayName,
       payable: artists.payable,
       yearMonth: commissionEarnings.yearMonth,
@@ -99,11 +102,87 @@ export async function getCommissionEarningRows(): Promise<CommissionEarningView[
     .from(commissionEarnings)
     .leftJoin(artists, eq(commissionEarnings.artistId, artists.id))
   return rows.map((r) => ({
+    artistId: r.artistId,
     artistName: r.artistName ?? 'Unattributed',
     payable: r.artistName ? (r.payable ?? true) : false,
     yearMonth: r.yearMonth,
     commissionCents: r.commissionCents
   }))
+}
+
+/** artistId → total paid cents (sum of artist_payouts). */
+export async function getPaidCentsByArtist(): Promise<Map<string, number>> {
+  const rows = await db
+    .select({
+      artistId: artistPayouts.artistId,
+      paidCents: sql<number>`coalesce(sum(${artistPayouts.amountCents}), 0)`
+    })
+    .from(artistPayouts)
+    .groupBy(artistPayouts.artistId)
+  return new Map(rows.map((r) => [r.artistId, Number(r.paidCents)]))
+}
+
+export interface PayableArtistOption {
+  id: string
+  name: string
+}
+
+/** Artists eligible to receive a payout (payable), for the entry dropdown. */
+export async function getPayableArtists(): Promise<PayableArtistOption[]> {
+  const rows = await db
+    .select({ id: artists.id, name: artists.displayName, payable: artists.payable })
+    .from(artists)
+    .where(eq(artists.payable, true))
+    .orderBy(asc(artists.displayName))
+  return rows.map((r) => ({ id: r.id, name: r.name }))
+}
+
+export interface RecordPayoutInput {
+  artistId: string
+  amountCents: number
+  paidAt: Date
+  method?: string | null
+  note?: string | null
+  createdBy?: string | null
+}
+
+/** Insert a payout (advances are just payouts that exceed current earnings). */
+export async function recordPayout(input: RecordPayoutInput): Promise<void> {
+  await db.insert(artistPayouts).values({
+    artistId: input.artistId,
+    amountCents: input.amountCents,
+    paidAt: input.paidAt,
+    method: input.method ?? null,
+    note: input.note ?? null,
+    createdBy: input.createdBy ?? null
+  })
+}
+
+export interface PayoutRow {
+  id: string
+  artistName: string
+  amountCents: number
+  paidAt: Date
+  method: string | null
+  note: string | null
+}
+
+/** Recent payouts across all artists, newest first. */
+export async function getRecentPayouts(limit = 50): Promise<PayoutRow[]> {
+  const rows = await db
+    .select({
+      id: artistPayouts.id,
+      artistName: artists.displayName,
+      amountCents: artistPayouts.amountCents,
+      paidAt: artistPayouts.paidAt,
+      method: artistPayouts.method,
+      note: artistPayouts.note
+    })
+    .from(artistPayouts)
+    .leftJoin(artists, eq(artistPayouts.artistId, artists.id))
+    .orderBy(desc(artistPayouts.paidAt))
+    .limit(limit)
+  return rows.map((r) => ({ ...r, artistName: r.artistName ?? '(deleted artist)' }))
 }
 
 /** Most recent sync timestamp, or null if never synced. */
