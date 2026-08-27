@@ -40,6 +40,11 @@ const SECTIONS: AdminSection[] = [
     description: 'Manage partner artists shown across the storefront.'
   },
   {
+    href: '/admin/commissions' as Route,
+    title: 'Commissions',
+    description: 'Per-artist commission owed by month (both locations) — 20% of net sales.'
+  },
+  {
     href: '/admin/ip-nicknames' as Route,
     title: 'IP nicknames',
     description: 'Map Square categories to public-facing IP names and slugs.'
