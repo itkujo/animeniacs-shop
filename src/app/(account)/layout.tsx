@@ -1,4 +1,5 @@
 import { getCurrentUser } from '@/lib/auth/get-current-user'
+import { getArtistByAccountEmail } from '@/lib/db/queries/commissions'
 import { redirect } from 'next/navigation'
 import { AccountNav } from './account/_components/AccountNav'
 
@@ -20,14 +21,15 @@ export default async function AccountLayout({
 }: {
   children: React.ReactNode
 }): Promise<JSX.Element> {
-  const { isAuthenticated } = await getCurrentUser()
+  const { isAuthenticated, email } = await getCurrentUser()
   if (!isAuthenticated) {
     redirect('/sign-in')
   }
+  const isArtist = email ? (await getArtistByAccountEmail(email)) !== null : false
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <AccountNav />
+      <AccountNav isArtist={isArtist} />
       {children}
     </div>
   )

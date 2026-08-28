@@ -3,19 +3,23 @@
 import { SignOutButton } from '@/components/auth/SignOutButton'
 import { usePathname } from 'next/navigation'
 
-const TABS = [
+const BASE_TABS = [
   { href: '/account', label: 'Account' },
   { href: '/account/orders', label: 'Order history' },
   { href: '/account/wishlist', label: 'Wishlist' }
-] as const
+]
 
 /**
  * Account tab bar. Themed to the Street Gallery look — purple hairline rule,
  * neon underline on the active tab. Client component so it can highlight the
- * current section via the pathname (`aria-current="page"`).
+ * current section via the pathname (`aria-current="page"`). The "Earnings" tab
+ * only appears for users linked to an artist (server passes `isArtist`).
  */
-export function AccountNav(): JSX.Element {
+export function AccountNav({ isArtist = false }: { isArtist?: boolean }): JSX.Element {
   const pathname = usePathname()
+  const TABS = isArtist
+    ? [...BASE_TABS, { href: '/account/earnings', label: 'Earnings' }]
+    : BASE_TABS
 
   function isActive(href: string): boolean {
     if (href === '/account') return pathname === '/account'

@@ -1,0 +1,1 @@
+ALTER TABLE "artists" ADD COLUMN "account_email" text;

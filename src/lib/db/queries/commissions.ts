@@ -185,6 +185,63 @@ export async function getRecentPayouts(limit = 50): Promise<PayoutRow[]> {
   return rows.map((r) => ({ ...r, artistName: r.artistName ?? '(deleted artist)' }))
 }
 
+// --- Artist self-serve earnings portal ---
+
+export interface LinkedArtist {
+  id: string
+  displayName: string
+  payable: boolean
+}
+
+/** Find the artist linked to a login email (case-insensitive), or null. */
+export async function getArtistByAccountEmail(email: string): Promise<LinkedArtist | null> {
+  const [row] = await db
+    .select({ id: artists.id, displayName: artists.displayName, payable: artists.payable })
+    .from(artists)
+    .where(sql`lower(${artists.accountEmail}) = ${email.toLowerCase()}`)
+    .limit(1)
+  return row ?? null
+}
+
+export interface ArtistMonthlyEarning {
+  yearMonth: string
+  commissionCents: number
+}
+
+/** Monthly commission rows for a single artist (for their own statement). */
+export async function getArtistEarnings(artistId: string): Promise<ArtistMonthlyEarning[]> {
+  return db
+    .select({
+      yearMonth: commissionEarnings.yearMonth,
+      commissionCents: commissionEarnings.commissionCents
+    })
+    .from(commissionEarnings)
+    .where(eq(commissionEarnings.artistId, artistId))
+}
+
+export interface ArtistPayoutHistoryRow {
+  id: string
+  amountCents: number
+  paidAt: Date
+  method: string | null
+  note: string | null
+}
+
+/** One artist's payout history, newest first. */
+export async function getPayoutsForArtist(artistId: string): Promise<ArtistPayoutHistoryRow[]> {
+  return db
+    .select({
+      id: artistPayouts.id,
+      amountCents: artistPayouts.amountCents,
+      paidAt: artistPayouts.paidAt,
+      method: artistPayouts.method,
+      note: artistPayouts.note
+    })
+    .from(artistPayouts)
+    .where(eq(artistPayouts.artistId, artistId))
+    .orderBy(desc(artistPayouts.paidAt))
+}
+
 /** Most recent sync timestamp, or null if never synced. */
 export async function getLastCommissionSyncAt(): Promise<Date | null> {
   const [row] = await db

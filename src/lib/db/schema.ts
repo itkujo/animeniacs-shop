@@ -269,6 +269,10 @@ export const artists = pgTable(
     // House/non-payable accounts (e.g. "Animeniacs Studios") stay `false`: their
     // commission is still COMPUTED and shown, but excluded from amounts owed.
     payable: boolean('payable').notNull().default(true),
+    // Login email that links a signed-in user to this artist for the self-serve
+    // earnings page. Match is case-insensitive; nullable (unset until linked).
+    // Distinct from paymentEmail (which may be a Venmo/CashApp handle).
+    accountEmail: text('account_email'),
     paymentMethod: text('payment_method'),
     paymentEmail: text('payment_email'),
     notes: text('notes'),

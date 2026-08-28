@@ -54,6 +54,7 @@ export function parseArtistForm(form: FormData): ParsedArtistFormData {
     commissionRate: getRequired(form, 'commissionRate') || '0.2000',
     paymentMethod: getNullable(form, 'paymentMethod'),
     paymentEmail: getNullable(form, 'paymentEmail'),
+    accountEmail: getNullable(form, 'accountEmail'),
     notes: getNullable(form, 'notes')
   }
 

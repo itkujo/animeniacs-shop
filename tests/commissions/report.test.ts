@@ -37,3 +37,32 @@ describe('buildReport', () => {
     ])
   })
 })
+
+import { buildArtistStatement } from '@/lib/commissions/report'
+
+describe('buildArtistStatement', () => {
+  it('sums monthly earnings + payouts into made/paid/balance', () => {
+    const s = buildArtistStatement(
+      [
+        { yearMonth: '2026-07', commissionCents: 300 },
+        { yearMonth: '2026-08', commissionCents: 800 }
+      ],
+      [
+        { id: 'p1', amountCents: 500, paidAt: new Date('2026-08-01'), method: 'Venmo', note: null }
+      ]
+    )
+    expect(s.months).toEqual(['2026-07', '2026-08'])
+    expect(s.byMonth).toEqual({ '2026-07': 300, '2026-08': 800 })
+    expect(s.madeCents).toBe(1100)
+    expect(s.paidCents).toBe(500)
+    expect(s.balanceCents).toBe(600)
+  })
+
+  it('goes negative when advanced (paid more than earned)', () => {
+    const s = buildArtistStatement(
+      [{ yearMonth: '2026-08', commissionCents: 200 }],
+      [{ id: 'p1', amountCents: 500, paidAt: new Date(), method: null, note: 'advance' }]
+    )
+    expect(s.balanceCents).toBe(-300)
+  })
+})

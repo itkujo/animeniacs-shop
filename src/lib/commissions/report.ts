@@ -1,4 +1,8 @@
-import type { CommissionEarningView } from '@/lib/db/queries/commissions'
+import type {
+  ArtistMonthlyEarning,
+  ArtistPayoutHistoryRow,
+  CommissionEarningView
+} from '@/lib/db/queries/commissions'
 
 /**
  * Pure shaping of flat earning rows into the per-artist × per-month matrix the
@@ -65,4 +69,35 @@ export function buildReport(rows: CommissionEarningView[]): CommissionReport {
   }
 
   return { months: sortedMonths, artists, columnTotals, grandTotalCents, payableTotalCents }
+}
+
+// --- Single-artist statement (self-serve earnings page) ---
+
+export interface ArtistStatement {
+  months: string[] // sorted asc
+  byMonth: Record<string, number> // yearMonth → commission cents
+  madeCents: number
+  paidCents: number
+  balanceCents: number // made − paid; negative = advanced (artist owes shop)
+}
+
+/** Pure: one artist's monthly earnings + payouts → their statement totals. */
+export function buildArtistStatement(
+  earnings: ArtistMonthlyEarning[],
+  payouts: ArtistPayoutHistoryRow[]
+): ArtistStatement {
+  const byMonth: Record<string, number> = {}
+  let madeCents = 0
+  for (const e of earnings) {
+    byMonth[e.yearMonth] = (byMonth[e.yearMonth] ?? 0) + e.commissionCents
+    madeCents += e.commissionCents
+  }
+  const paidCents = payouts.reduce((sum, p) => sum + p.amountCents, 0)
+  return {
+    months: Object.keys(byMonth).sort(),
+    byMonth,
+    madeCents,
+    paidCents,
+    balanceCents: madeCents - paidCents
+  }
 }

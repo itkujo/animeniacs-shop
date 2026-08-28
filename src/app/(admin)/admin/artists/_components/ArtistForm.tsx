@@ -223,6 +223,16 @@ export function ArtistForm({
         />
       </Field>
 
+      <Field label="Account login email (self-serve earnings page)" error={fieldErr('accountEmail')}>
+        <input
+          type="email"
+          name="accountEmail"
+          maxLength={200}
+          placeholder="the email they log in with"
+          defaultValue={a?.accountEmail ?? ''}
+        />
+      </Field>
+
       <Field label="Admin notes (private)" error={fieldErr('notes')}>
         <textarea name="notes" maxLength={4000} rows={3} defaultValue={a?.notes ?? ''} />
       </Field>

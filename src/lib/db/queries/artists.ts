@@ -53,6 +53,8 @@ export const ArtistInputSchema = z.object({
     .default('0.2000'),
   paymentMethod: z.string().max(40).nullable().optional(),
   paymentEmail: z.string().max(200).nullable().optional(),
+  // Login email linking a signed-in user to this artist's self-serve earnings page.
+  accountEmail: z.string().email().max(200).nullable().optional(),
   notes: z.string().max(4000).nullable().optional()
 })
 
